@@ -1,11 +1,16 @@
-# C Learning Journey
+# C and C++ Learning Journey
 
-Welcome to my C programming repository. This "book" documents my journey of learning C through practical projects. Each chapter dives into a specific project, explaining the concepts, code, and logic behind it.
+Welcome to my programming repository. This "book" documents my journey of learning both C and C++ through practical projects. Each chapter dives into a specific project, explaining the concepts, code, and logic behind it.
 
 ## Index
 
-*   [**Chapter 1: The Obfuscator**](./obfuscator) - A simple tool to scramble text using bitwise operations.
-*   [**Chapter 2: SDL Experiment**](./sdl) - An exploration of graphics programming and window management.
+### Part 1: C Projects
+*   [**Chapter 1: The Obfuscator**](./C/obfuscator) - A simple tool to scramble text using bitwise operations.
+*   [**Chapter 2: SDL Experiment**](./C/sdl) - An exploration of graphics programming and window management.
+*   [**Ping Pong**](./C/Ping%20Pong) - *Work in Progress*
+
+### Part 2: C++ Projects
+*   [**Chapter 3: Hello World**](./C++) - First steps into C++.
 
 ---
 
@@ -36,7 +41,7 @@ flowchart LR
 ```
 
 ### Code Walkthrough
-Let's look at `obfuscator/main.c` line by line.
+Let's look at `C/obfuscator/main.c` line by line.
 
 ```c
 1: #include <stdio.h>
@@ -100,7 +105,7 @@ stateDiagram-v2
     CleanUp --> [*]: SDL_Quit
 ```
 
-### Key Components (`sdl/main.c`)
+### Key Components (`C/sdl/main.c`)
 
 *   **SDL Initialization**: `SDL_Init(SDL_INIT_VIDEO)` sets up the video subsystem.
 *   **Window Creation**: `SDL_CreateWindow` opens the actual OS window with the title "ASCII Spinner".
@@ -112,6 +117,28 @@ stateDiagram-v2
     ```
     This non-blocking loop checks for user actions (like clicking the 'X' button) to ensure the application stays responsive.
 *   **The Spinner**: The code manually refreshes the console output using ANSI escape codes (`\033[2J\033[H`) to clear the screen and print the next frame of the animation, creating a simple visual effect in the terminal alongside the empty SDL window.
+
+---
+
+## Chapter 3: Hello World (C++)
+
+### Overview
+This is the classic entry point for any language. In C++, we use the Standard Template Library (STL) streams for output.
+
+### Code Walkthrough (`C++/main.cpp`)
+
+```cpp
+1: #include <iostream>
+2: using namespace std;
+3: int main(){
+4:     cout << "Hello World";
+5:     return 0;
+6: }
+```
+
+*   `#include <iostream>`: Includes the Input/Output Stream library, replacing C's `stdio.h`.
+*   `using namespace std;`: Allows us to use `cout` instead of `std::cout`.
+*   `cout <<`: "Character Output". The `<<` operator directs the string "Hello World" to the output stream.
 
 ---
 *Happy Coding!*
