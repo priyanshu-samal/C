@@ -7,10 +7,10 @@ Welcome to my programming repository. This "book" documents my journey of learni
 ### Part 1: C Projects
 *   [**Chapter 1: The Obfuscator**](./C/obfuscator) - A simple tool to scramble text using bitwise operations.
 *   [**Chapter 2: SDL Experiment**](./C/sdl) - An exploration of graphics programming and window management.
-*   [**Ping Pong**](./C/Ping%20Pong) - *Work in Progress*
+*   [**Chapter 3: Ping Pong**](#chapter-3-ping-pong) - A classic Pong game implemented from scratch.
 
 ### Part 2: C++ Projects
-*   [**Chapter 3: Hello World**](./C++) - First steps into C++.
+*   [**Chapter 4: Hello World**](./C++) - First steps into C++.
 
 ---
 
@@ -120,7 +120,121 @@ stateDiagram-v2
 
 ---
 
-## Chapter 3: Hello World (C++)
+## Chapter 3: Ping Pong
+
+### Overview
+**Pong in C using SDL2** is a classic Pong game implemented from scratch. This project was built to deeply understand low-level memory manipulation, pointers, real-time game loops, collision physics, and state-driven architecture.
+
+![Gameplay Screenshot](./C/Ping%20Pong/pingpong.png)
+
+### Features
+*   **🎮 Two-player Pong** (keyboard controlled)
+*   **⏯️ Start / Pause / Resume** game
+*   **🧠 Constant-speed ball physics** (no speed bugs)
+*   **🧱 Proper collision handling** (walls & paddles)
+*   **📝 Text rendering** using SDL2_ttf
+*   **🧩 Clean game-state architecture**
+
+### Controls
+| Key | Action |
+| :--- | :--- |
+| **W / S** | Player 1 paddle up / down |
+| **↑ / ↓** | Player 2 paddle up / down |
+| **SPACE** | Start / Pause / Resume |
+| **X** | Restart game (reset score) |
+| **ESC** | Quit |
+
+### High-Level Architecture
+The game is structured into three core phases, executed every frame. This separation ensures input doesn’t directly affect rendering and physics doesn’t run when paused.
+
+```mermaid
+flowchart TD
+    Input[Input Handling] --> Update[Game Logic / Physics]
+    Update --> Render[Rendering]
+    Render --> Input
+```
+
+### Game State System
+The game uses a state machine to control behavior:
+
+```mermaid
+stateDiagram-v2
+    WAIT --> PLAY : Press SPACE
+    PLAY --> PAUSE : Press SPACE
+    PAUSE --> PLAY : Press SPACE
+    PLAY --> WAIT : Score Event
+
+    state "GAME_WAIT" as WAIT
+    state "GAME_PLAY" as PLAY
+    state "GAME_PAUSE" as PAUSE
+```
+
+*   **GAME_WAIT**: Ball is reset, waiting to start.
+*   **GAME_PLAY**: Physics and movement active.
+*   **GAME_PAUSE**: Screen frozen, input still active.
+
+### Technical Deep Dive
+#### Memory & Pointer Design
+This project intentionally uses **pointers** everywhere movement or state must persist.
+
+```c
+void move_paddle(SDL_Rect *p, int dy)
+```
+
+Passing by **value** would modify a copy. Passing a **pointer** modifies the actual object in memory. This is how real engines work at a low level: nothing "moves" on screen; numbers in memory change, and SDL draws those numbers.
+
+#### Physics (Ball Movement)
+The ball uses float-based velocity vectors to prevent speed bugs and inconsistent gameplay.
+
+```mermaid
+flowchart LR
+    Collision --> AngleCalc
+    AngleCalc --> Normalize
+    Normalize --> ConstantSpeed
+```
+
+1.  **Angle Calculation**: Calculated based on where the ball hits the paddle.
+2.  **Normalization**: The velocity vector is normalized.
+3.  **Constant Speed**: Speed magnitude is restored to a constant value.
+
+### File Structure
+```
+Ping Pong/
+├── main.c        # Entire game logic
+├── arial.ttf     # Font used for score rendering
+├── pingpong.png  # Gameplay screenshot
+└── pingpong.exe  # Generated buffer
+```
+
+### How to Build & Run (Step-by-Step)
+**Windows (MSYS2 – MinGW64)**
+
+1.  **Install dependencies**
+    ```bash
+    pacman -S mingw-w64-x86_64-SDL2 mingw-w64-x86_64-SDL2_ttf
+    ```
+
+2.  **Navigate to project folder**
+    ```bash
+    cd "C/Ping Pong"
+    ```
+
+3.  **Compile**
+    ```bash
+    gcc main.c -o pingpong $(pkg-config --cflags --libs sdl2 SDL2_ttf) -lm
+    ```
+
+4.  **Run**
+    ```bash
+    ./pingpong
+    ```
+
+> [!WARNING]
+> Ensure `arial.ttf` is in the same folder as the executable, otherwise the game may not load the font.
+
+---
+
+## Chapter 4: Hello World (C++)
 
 ### Overview
 This is the classic entry point for any language. In C++, we use the Standard Template Library (STL) streams for output.
