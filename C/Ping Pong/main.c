@@ -1,6 +1,21 @@
-#include <stdio.h>
-#include <stdlib.h>
 #include <SDL2/SDL.h>
+#include <stdio.h>
+
+#define WINDOW_WIDTH 800
+#define WINDOW_HEIGHT 600
+
+#define PADDLE_WIDTH  20
+#define PADDLE_HEIGHT 120
+#define PADDLE_SPEED  6
+
+void move_paddle(SDL_Rect *p, int dy) {
+    p->y += dy;
+
+    if (p->y < 0)
+        p->y = 0;
+    if (p->y + p->h > WINDOW_HEIGHT)
+        p->y = WINDOW_HEIGHT - p->h;
+}
 
 int main(int argc, char *argv[])
 {
@@ -10,64 +25,72 @@ int main(int argc, char *argv[])
     }
 
     SDL_Window *window = SDL_CreateWindow(
-        "Ping pong",
+        "Pong",
         SDL_WINDOWPOS_CENTERED,
         SDL_WINDOWPOS_CENTERED,
-        800, 600,
-        0
+        WINDOW_WIDTH,
+        WINDOW_HEIGHT,
+        SDL_WINDOW_SHOWN
     );
 
-    SDL_Surface *surface = SDL_GetWindowSurface(window);
+    SDL_Renderer *renderer = SDL_CreateRenderer(
+        window,
+        -1,
+        SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC
+    );
 
-    SDL_Rect pl1 = {40, 40, 40, 150};
-    SDL_Rect pl2 = {720, 40, 40, 150};
-    Uint32 color = 0xFFFFFFFF;
-
-    SDL_FillRect(surface, &pl1, color);
-    SDL_FillRect(surface, &pl2, color);
-    SDL_UpdateWindowSurface(window);
-
-    int running = 1;
-
-    while (running) {
-        SDL_Event event;
-
-        while (SDL_PollEvent(&event)) {
-
-            if (event.type == SDL_QUIT) {
-                running = 0;
-            }
-
-            if (event.type == SDL_KEYDOWN) {
-
-                if (event.key.keysym.sym == SDLK_ESCAPE) {
-                    running = 0;
-                }
-
-                if (event.key.keysym.sym == SDLK_w) {
-                    pl1.y -= 10;
-                }
-
-                if (event.key.keysym.sym == SDLK_s) {
-                    pl1.y += 10;
-                }
-
-                if (event.key.keysym.sym == SDLK_UP) {
-                    pl2.y -= 10;
-                }
-
-                if (event.key.keysym.sym == SDLK_DOWN) {
-                    pl2.y += 10;
-                }
-
-                SDL_FillRect(surface, NULL, 0x000000FF);
-                SDL_FillRect(surface, &pl1, color);
-                SDL_FillRect(surface, &pl2, color);
-                SDL_UpdateWindowSurface(window);
-            }
-        }
+    if (!renderer) {
+        printf("Renderer error: %s\n", SDL_GetError());
+        return 1;
     }
 
+    SDL_Rect p1 = { 40, (WINDOW_HEIGHT - PADDLE_HEIGHT)/2,
+                    PADDLE_WIDTH, PADDLE_HEIGHT };
+
+    SDL_Rect p2 = { WINDOW_WIDTH - 40 - PADDLE_WIDTH,
+                    (WINDOW_HEIGHT - PADDLE_HEIGHT)/2,
+                    PADDLE_WIDTH, PADDLE_HEIGHT };
+
+    int running = 1;
+    SDL_Event event;
+
+    while (running) {
+
+        
+        while (SDL_PollEvent(&event)) {
+            if (event.type == SDL_QUIT)
+                running = 0;
+
+            if (event.type == SDL_KEYDOWN &&
+                event.key.keysym.sym == SDLK_ESCAPE)
+                running = 0;
+        }
+
+        
+        const Uint8 *keys = SDL_GetKeyboardState(NULL);
+
+        if (keys[SDL_SCANCODE_W])
+            move_paddle(&p1, -PADDLE_SPEED);
+        if (keys[SDL_SCANCODE_S])
+            move_paddle(&p1,  PADDLE_SPEED);
+
+        if (keys[SDL_SCANCODE_UP])
+            move_paddle(&p2, -PADDLE_SPEED);
+        if (keys[SDL_SCANCODE_DOWN])
+            move_paddle(&p2,  PADDLE_SPEED);
+
+        
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+        SDL_RenderClear(renderer);
+
+        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+        SDL_RenderFillRect(renderer, &p1);
+        SDL_RenderFillRect(renderer, &p2);
+
+        SDL_RenderPresent(renderer);
+    }
+
+    SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     SDL_Quit();
     return 0;
