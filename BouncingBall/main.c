@@ -4,64 +4,43 @@
 
 #undef main
 
-struct Circle {
-    int x;
-    int y;
-    int radius;
-};
-
-void FillCircle(SDL_Surface *surface, struct Circle circle, Uint32 color) {
-    int x0 = circle.x;
-    int y0 = circle.y;
-    int r  = circle.radius;
-
-    Uint32 *pixels = (Uint32 *)surface->pixels;
-
-    for (int y = -r; y <= r; y++) {
-        for (int x = -r; x <= r; x++) {
-            if (x*x + y*y <= r*r) {
-                int px = x0 + x;
-                int py = y0 + y;
-
-                if (px >= 0 && px < surface->w &&
-                    py >= 0 && py < surface->h) {
-                    pixels[py * surface->w + px] = color;
-                }
-            }
-        }
-    }
-}
-
 int main(void)
 {
-    if (SDL_Init(SDL_INIT_VIDEO) != 0) {
-        printf("SDL_Init failed: %s\n", SDL_GetError());
-        return 1;
-    }
+    SDL_Init(SDL_INIT_VIDEO);
+
+    const int WIDTH  = 800;
+    const int HEIGHT = 600;
 
     SDL_Window *window = SDL_CreateWindow(
-        "Bouncing Ball",
+        "Red Ball with Orange Trail",
         SDL_WINDOWPOS_CENTERED,
         SDL_WINDOWPOS_CENTERED,
-        800,
-        600,
+        WIDTH, HEIGHT,
         SDL_WINDOW_SHOWN
     );
 
-    if (!window) {
-        printf("Window creation failed: %s\n", SDL_GetError());
-        SDL_Quit();
-        return 1;
-    }
+    SDL_Renderer *renderer = SDL_CreateRenderer(
+        window, -1, SDL_RENDERER_ACCELERATED
+    );
 
-    SDL_Surface *surface = SDL_GetWindowSurface(window);
+    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
 
-    struct Circle ball = {400, 300, 10};
-    int vx = 4;
-    int vy = 4;
+    
+    float x = 200.0f;
+    float y = 120.0f;
+    float vx = 16.0f;     
+    float vy = -14.0f;
+    float gravity = 0.75f;
+
+    int radius = 24;
 
     int running = 1;
     SDL_Event event;
+
+    
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+    SDL_RenderClear(renderer);
+    SDL_RenderPresent(renderer);
 
     while (running) {
         while (SDL_PollEvent(&event)) {
@@ -70,27 +49,59 @@ int main(void)
         }
 
         
-        ball.x += vx;
-        ball.y += vy;
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 14);
+        SDL_RenderFillRect(renderer, NULL);
 
         
-        if (ball.x - ball.radius <= 0 || ball.x + ball.radius >= surface->w)
+        x += vx;
+        y += vy;
+        vy += gravity;
+
+        
+        if (y + radius >= HEIGHT) {
+            y = HEIGHT - radius;
+            vy = -vy * 0.96f;   
+        }
+
+        
+        if (x - radius <= 0 || x + radius >= WIDTH) {
             vx = -vx;
-        if (ball.y - ball.radius <= 0 || ball.y + ball.radius >= surface->h)
-            vy = -vy;
+        }
 
         
-        SDL_FillRect(surface, NULL, 0x000000);
+        SDL_SetRenderDrawColor(renderer, 255, 140, 0, 80);
+        for (int dy = -radius; dy <= radius; dy++) {
+            for (int dx = -radius; dx <= radius; dx++) {
+                if (dx*dx + dy*dy <= radius*radius) {
+                    SDL_RenderDrawPoint(
+                        renderer,
+                        (int)(x + dx),
+                        (int)(y + dy)
+                    );
+                }
+            }
+        }
 
         
-        SDL_LockSurface(surface);
-        FillCircle(surface, ball, 0xFFFFFFFF);
-        SDL_UnlockSurface(surface);
+        int core = radius - 6;
+        SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+        for (int dy = -core; dy <= core; dy++) {
+            for (int dx = -core; dx <= core; dx++) {
+                if (dx*dx + dy*dy <= core*core) {
+                    SDL_RenderDrawPoint(
+                        renderer,
+                        (int)(x + dx),
+                        (int)(y + dy)
+                    );
+                }
+            }
+        }
 
-        SDL_UpdateWindowSurface(window);
+        SDL_RenderPresent(renderer);
         SDL_Delay(16); 
     }
 
+    SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     SDL_Quit();
     return 0;
