@@ -7,6 +7,7 @@ Welcome to my C programming repository. This "book" documents my journey of lear
 *   [**Chapter 1: The Obfuscator**](./obfuscator) - A simple tool to scramble text using bitwise operations.
 *   [**Chapter 2: SDL Experiment**](./sdl) - An exploration of graphics programming and window management.
 *   [**Chapter 3: Ping Pong**](./Ping%20Pong) - A classic Pong game implemented from scratch.
+*   [**Chapter 4: Bouncing Ball**](./BouncingBall) - Gravity simulation with visual trail effects.
 
 ---
 
@@ -230,6 +231,70 @@ Ping Pong/
 
 > [!WARNING]
 > Ensure `arial.ttf` is in the same folder as the executable, otherwise the game may not load the font.
+
+---
+
+## Chapter 4: Bouncing Ball
+
+### Overview
+**Bouncing Ball** is a physics simulation that models gravity and momentum. It renders a red ball that accelerates downwards, bounces off the floor with energy loss (restitution), and leaves a fading orange trail to visualize its path.
+
+### Key Concepts
+
+#### 1. Gravity & Physics
+The simulation uses a simple Euler integration method:
+*   **Gravity**: Constant acceleration added to velocity every frame.
+*   **Restitution**: When hitting the floor, velocity is inverted and multiplied by `0.96f` to simulate energy loss (damping).
+
+```mermaid
+flowchart TD
+    Start[Frame Start] --> Gravity[Apply Gravity: vy += 0.75]
+    Gravity --> Move[Update Position: y += vy]
+    Move --> Check{Floor Collision?}
+    Check -->|Yes| Bounce[Invert Velocity: vy *= -0.96]
+    Check -->|No| Render
+    Bounce --> Render[Draw Ball]
+```
+
+#### 2. Trail Effect (Visuals)
+Instead of clearing the screen completely with black, we draw a semi-transparent black rectangle over the previous frame.
+```c
+SDL_SetRenderDrawColor(renderer, 0, 0, 0, 14); // Low alpha
+SDL_RenderFillRect(renderer, NULL);
+```
+This causes previous positions of the ball to slowly fade out, creating a smooth "motion blur" or trail effect without storing a history of positions.
+
+### Code Highlights (`BouncingBall/main.c`)
+
+**Drawing the Circle (Manual Rasterization)**
+Since SDL2 doesn't have a built-in `FillCircle`, we use the circle equation $x^2 + y^2 \le r^2$:
+```c
+for (int dy = -radius; dy <= radius; dy++) {
+    for (int dx = -radius; dx <= radius; dx++) {
+        if (dx*dx + dy*dy <= radius*radius) {
+            SDL_RenderDrawPoint(renderer, x + dx, y + dy);
+        }
+    }
+}
+```
+
+### How to Build & Run
+**Windows (MSYS2 – MinGW64)**
+
+1.  **Navigate to project folder**
+    ```bash
+    cd "BouncingBall"
+    ```
+
+2.  **Compile**
+    ```bash
+    gcc main.c -o bouncingball $(pkg-config --cflags --libs sdl2)
+    ```
+
+3.  **Run**
+    ```bash
+    ./bouncingball
+    ```
 
 ---
 *Happy Coding!*
