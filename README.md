@@ -8,6 +8,7 @@ Welcome to my C programming repository. This "book" documents my journey of lear
 *   [**Chapter 2: SDL Experiment**](./sdl) - An exploration of graphics programming and window management.
 *   [**Chapter 3: Ping Pong**](./Ping%20Pong) - A classic Pong game implemented from scratch.
 *   [**Chapter 4: Bouncing Ball**](./BouncingBall) - Gravity simulation with visual trail effects.
+*   [**Chapter 5: Ray Casting**](./RayTracing) - 2D dynamic shadow casting with interactive light source.
 
 ---
 
@@ -298,6 +299,77 @@ for (int dy = -radius; dy <= radius; dy++) {
 3.  **Run**
     ```bash
     ./bouncingball
+    ```
+
+---
+
+## Chapter 5: Ray Casting
+
+### Overview
+**Sharp Rays** is a 2D ray casting engine that demonstrates dynamic lighting and shadows. Unlike standard rasterization, this project casts hundreds of rays from a light source (the "Sun") in all directions. When a ray hits an object (the "Earth"), it stops, creating a shadow behind the object. The simulation renders these rays in real-time, allowing you to drag the Sun and Earth to see the shadows shift instantly.
+
+### Key Concepts
+
+#### 1. Ray Casting Algorithm
+For every frame, the engine emits 720 rays (one every 0.5 degrees) from the center of the Sun.
+*   **Step**: Each ray marches forward pixel by pixel.
+*   **Collision**: If a ray hits the Earth (distance < radius) or the screen edge, it stops.
+*   **Rendering**: Pixels along the ray's path are colored, creating a beam of light.
+
+```mermaid
+flowchart LR
+    Source((Sun)) -->|Emit Ray| Step[Step Forward]
+    Step --> Check{Hit Earth?}
+    Check -->|Yes| Stop[Stop Ray (Shadow)]
+    Check -->|No| Draw[Draw Pixel]
+    Draw --> Step
+```
+
+#### 2. Interactive Geometry
+The project handles mouse input to update the coordinates of the `Circle` structs for the Sun and Earth. This requires re-calculating all ray interactions every frame, showcasing the efficiency of direct pixel manipulation in C.
+
+### Code Highlights (`RayTracing/main.c`)
+
+**The Ray Marching Loop**
+```c
+for (int i = 0; i < ray_count; i++) {
+    double angle = (2.0 * M_PI * i) / ray_count;
+    double dx = cos(angle);
+    double dy = sin(angle);
+
+    for (double t = sun.radius; t < max_len; t += 1.0) {
+        int x = (int)(sun.x + dx * t);
+        int y = (int)(sun.y + dy * t);
+        
+        // Stop if we hit the Earth (Simple Shadow Logic)
+        if (dist(x, y, earth.x, earth.y) <= earth.radius)
+            break;
+
+        pixels[y * pitch + x] = rayCol;
+    }
+}
+```
+
+### Controls
+*   **Left Click & Drag**: Move the Sun (Yellow) or Earth (Blue).
+*   **ESC**: Quit the application.
+
+### How to Build & Run
+**Windows (MSYS2 – MinGW64)**
+
+1.  **Navigate to project folder**
+    ```bash
+    cd "RayTracing"
+    ```
+
+2.  **Compile**
+    ```bash
+    gcc main.c -o raytracing $(pkg-config --cflags --libs sdl2) -lm
+    ```
+
+3.  **Run**
+    ```bash
+    ./raytracing
     ```
 
 ---
