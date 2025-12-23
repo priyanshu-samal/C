@@ -429,35 +429,117 @@ arena = VirtualAlloc(NULL, ARENA_SIZE, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE)
 
 ### Step-by-Step Execution Model
 
-Let's assume `ARENA_SIZE = 1024`, `sizeof(Block) = 24`, aligned to 8 bytes.
+We’ll walk through this allocator as if we are single-stepping it in a debugger, with real numbers, real addresses, and clear accept/reject conditions.
 
-#### 0. Initial State
-*   `arena = NULL`. Nothing exists.
+**Assumptions**:
+*   `ARENA_SIZE` = 1024 bytes
+*   `sizeof(Block)` = 24 bytes
+*   Alignment = 8
+*   Arena base address = `0x1000`
 
-#### 1. First Call: `my_malloc(100)`
-1.  **Lazy Init**: `arena` is NULL, so we call `VirtualAlloc`.
-    *   OS gives address `0x1000`.
-    *   **Block A** created at `0x1000`. Size: 1000 bytes (1024 - 24). Status: **Free**.
-2.  **Alignment**: Request 100 → Aligned to **104**.
-3.  **Split**: Block A (1000) is way bigger than 104.
-    *   **Block A** shrinks to 104 bytes. Status: **Used**.
-    *   **Block B** created at `0x1080` (0x1000 + 24 + 104). Size: 872. Status: **Free**.
-4.  **Return**: Pointer to `0x1018` (After Block A header).
+#### 0️⃣ Initial State
+```c
+static void* arena = NULL;
+static Block* free_list = NULL;
+```
+Nothing exists yet.
 
-#### 2. Second Call: `my_malloc(200)`
-1.  **Traverse**:
-    *   Check Block A: It's **Used** (Rejected).
-    *   Check Block B: It's **Free** and Size (872) >= 200. (Accepted).
-2.  **Split**:
-    *   **Block B** shrinks to 200 bytes. Status: **Used**.
-    *   **Block C** created at `0x1160`. Size: 648. Status: **Free**.
+#### 1️⃣ First call: `my_malloc(100)`
 
-#### 3. Freeing Memory: `my_free(ptr)`
-1.  **Calculate Header**: `Block* block = (Block*)ptr - 1`.
-2.  **Mark Free**: `block->free = 1`.
-3.  **Coalesce (Merge)**:
-    *   If `block` and `block->next` are both free, merge them into one big block.
-    *   This prevents fragmentation.
+**Step 1: Lazy Init**
+`arena` is NULL, so `init_allocator()` runs. `VirtualAlloc` gives memory at `0x1000`.
+*   **free_list**: `0x1000`
+*   **Size**: 1024 - 24 = 1000
+*   **Free**: 1
+
+**Memory Layout:**
+```
+0x1000 ┌────────────────────────────┐
+       │ Block header (size=1000)   │
+0x1018 ├────────────────────────────┤
+       │ free memory (1000 bytes)   │
+       │                            │
+       └────────────────────────────┘
+```
+
+**Step 2: Alignment**
+`size = ALIGN(100)`
+`(100 + 7) & ~7` = 104.
+Requested size is **104**.
+
+**Step 3: Traverse & Split**
+*   **Check**: `curr->free` (1) is True AND `curr->size` (1000) >= 104. **ACCEPTED**.
+*   **Split Check**: 1000 >= 104 (size) + 24 (header) + 8 (alignment) = 136. **Yes**.
+*   **Splitting logic**:
+    *   **New Block B** created at `0x1080` (`0x1000` + 24 + 104).
+    *   **Block A** shrinks to 104 bytes.
+
+**Memory after split:**
+```
+0x1000 ┌─────────────┐
+       │ Block A     │ size=104, used
+0x1018 ├─────────────┤
+       │ user data   │ (104 bytes)
+0x1080 ├─────────────┤
+       │ Block B     │ size=872, free
+0x1098 ├─────────────┤
+       │ free memory │
+       └─────────────┘
+```
+**Return**: `0x1018` (User gets pointer to data).
+
+#### 2️⃣ Second call: `my_malloc(200)`
+1.  **Align**: `ALIGN(200)` = 200.
+2.  **Traverse**:
+    *   Block A (`0x1000`): `free=0` → **REJECTED**.
+    *   Block B (`0x1080`): `free=1`, `size=872` >= 200. **ACCEPTED**.
+3.  **Split**: 872 >= 200 + 24 + 8. Yes.
+    *   New Block C created at `0x1160` (`0x1098` + 200).
+    *   Block B becomes Used (200), Block C is Free (648).
+
+#### 3️⃣ Third call: `my_malloc(50)`
+1.  **Align**: `ALIGN(50)` = 56.
+2.  **Traverse**: A (Used) → B (Used) → C (Free, 648 >= 56). **ACCEPTED**.
+3.  **Split**: New Block D created.
+
+**Current Layout**: `[A used] [B used] [C used] [D free]`
+
+#### 4️⃣ Freeing: `my_free(b)`
+1.  Get header from pointer (`0x1098` - 24 = `0x1080`).
+2.  Mark `free = 1`.
+3.  **Coalesce**:
+    *   A (Used) + B (Free) → Skip.
+    *   B (Free) + C (Used) → Skip.
+
+#### 5️⃣ Freeing: `my_free(a)`
+1.  Mark A `free = 1`.
+2.  **Coalesce**:
+    *   A (Free) + B (Free) → **MERGE**. A absorbs B.
+    *   Size becomes `sizeof(A) + sizeof(Block) + sizeof(B)`.
+
+#### 6️⃣ Freeing: `my_free(c)`
+1.  Mark C `free = 1`.
+2.  **Coalesce**: (A+B) is Free, C is Free. **MERGE**.
+3.  Result: One giant free block (A+B+C+D).
+
+---
+
+### Logic Summary
+
+**🚫 When allocation is REJECTED**
+1.  **Block too small**: `curr->size < size`
+2.  **Block is used**: `curr->free == 0`
+3.  **No block fits**: Returns `NULL`
+
+**✅ When allocation is ACCEPTED**
+1.  **Block is free** AND **Size is sufficient**.
+2.  **Split Condition**: `curr->size >= size + sizeof(Block) + ALIGNMENT`.
+    *   If yes: Split (Shrink current, create new free block).
+    *   If no: Use entire block (internal fragmentation).
+
+**Final Mental Model**
+*   **malloc**: Scan → Reject Used/Small → Split if possible → Mark Used → Return body.
+*   **free**: Jump back to header → Mark Free → Merge neighbors.
 
 ---
 
