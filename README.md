@@ -543,6 +543,44 @@ Requested size is **104**.
 
 ---
 
+### Trace Log (Live Debug Output)
+
+We instrumented the code to print every split, allocation, and merge. This trace perfectly matches the logic above.
+
+```text
+[INIT] arena=00BC0000 size=1048576
+
+[BLOCK LIST]
+Block 0 | header=00BC0000 | user=00BC000C | size=1048564 | free=1 | next=00000000
+
+[MALLOC] request=104
+  checking block=00BC0000 | free=1 | size=1048564
+  -> ACCEPTED
+[SPLIT] block=00BC0000 -> new_block=00BC0074 | sizes: 104 / 1048448
+[MALLOC DONE] header=00BC0000 user=00BC000C size=104
+
+[BLOCK LIST]
+Block 0 | header=00BC0000 | user=00BC000C | size=104 | free=0 | next=00BC0074
+Block 1 | header=00BC0074 | user=00BC0080 | size=1048448 | free=1 | next=00000000
+
+[MALLOC] request=200
+  checking block=00BC0000 | free=0 | size=104      
+  -> REJECTED
+  checking block=00BC0074 | free=1 | size=1048448  
+  -> ACCEPTED
+[SPLIT] block=00BC0074 -> new_block=00BC0148 | sizes: 200 / 1048236
+[MALLOC DONE] header=00BC0074 user=00BC0080 size=200
+
+[BLOCK LIST]
+Block 0 | header=00BC0000 | user=00BC000C | size=104 | free=0 | next=00BC0074
+Block 1 | header=00BC0074 | user=00BC0080 | size=200 | free=0 | next=00BC0148
+Block 2 | header=00BC0148 | user=00BC0154 | size=1048236 | free=1 | next=00000000
+
+[FREE] user=00BC0154 header=00BC0148 size=56
+[COALESCE] 00BC0000 + 00BC0148
+...
+```
+
 ### Windows vs Linux (The Brutal Truth)
 
 | Feature | Linux | Windows |
