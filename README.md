@@ -9,6 +9,7 @@ Welcome to my C programming repository. This "book" documents my journey of lear
 *   [**Chapter 3: Ping Pong**](./Ping%20Pong) - A classic Pong game implemented from scratch.
 *   [**Chapter 4: Bouncing Ball**](./BouncingBall) - Gravity simulation with visual trail effects.
 *   [**Chapter 5: Ray Casting**](./RayTracing) - 2D dynamic shadow casting with interactive light source.
+*   [**Chapter 6: Custom Allocator**](./CoustomCalMal) - A manual memory allocator from scratch using `VirtualAlloc`.
 
 ---
 
@@ -374,6 +375,121 @@ for (int i = 0; i < ray_count; i++) {
 3.  **Run**
     ```bash
     ./raytracing
+    ```
+
+---
+
+## Chapter 6: Custom Allocator
+
+### Overview
+This project builds a **custom memory allocator** from scratch on Windows. It avoids the standard C runtime heap (`malloc`/`free`) to interact directly with the OS kernel via `VirtualAlloc`. This is a deep dive into systems programming, understanding how memory managers work under the hood.
+
+### Part 1: Line-by-Line Explanation
+
+#### Headers and Macros
+```c
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#include <stdint.h>
+```
+*   **`WIN32_LEAN_AND_MEAN`**: Tells Windows headers to skip legacy APIs, reducing compile time and pollution.
+*   **`windows.h`**: Gives access to `VirtualAlloc`, `VirtualFree`, and OS types. This is the **OS boundary**.
+*   **`stdint.h`**: Provides fixed-width integers like `uint64_t` for precise memory control.
+
+#### Allocator Configuration
+```c
+#define ARENA_SIZE (1024 * 1024)
+#define ALIGNMENT 8
+```
+*   **`ARENA_SIZE`**: We request a 1 MB private heap from the OS.
+*   **`ALIGNMENT 8`**: x64 CPUs prefer 8-byte alignment. Misalignment causes performance hits or crashes.
+
+#### Block Metadata (The Heart of `malloc`)
+```c
+typedef struct Block {
+    size_t size;
+    int free;
+    struct Block* next;
+} Block;
+```
+This structure is **bookkeeping**. It sits *before* the memory you get.
+*   **`size`**: Usable memory size (excluding header).
+*   **`free`**: 1 if available, 0 if used.
+*   **`next`**: Points to the next block in our linked list.
+
+#### Initialization (`VirtualAlloc`)
+```c
+arena = VirtualAlloc(NULL, ARENA_SIZE, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+```
+*   **`MEM_RESERVE`**: Reserves virtual address space.
+*   **`MEM_COMMIT`**: Actually allocates physical memory (or swap).
+*   **Critical**: If this fails, the program crashes immediately. We cannot recover.
+
+---
+
+### Step-by-Step Execution Model
+
+Let's assume `ARENA_SIZE = 1024`, `sizeof(Block) = 24`, aligned to 8 bytes.
+
+#### 0. Initial State
+*   `arena = NULL`. Nothing exists.
+
+#### 1. First Call: `my_malloc(100)`
+1.  **Lazy Init**: `arena` is NULL, so we call `VirtualAlloc`.
+    *   OS gives address `0x1000`.
+    *   **Block A** created at `0x1000`. Size: 1000 bytes (1024 - 24). Status: **Free**.
+2.  **Alignment**: Request 100 → Aligned to **104**.
+3.  **Split**: Block A (1000) is way bigger than 104.
+    *   **Block A** shrinks to 104 bytes. Status: **Used**.
+    *   **Block B** created at `0x1080` (0x1000 + 24 + 104). Size: 872. Status: **Free**.
+4.  **Return**: Pointer to `0x1018` (After Block A header).
+
+#### 2. Second Call: `my_malloc(200)`
+1.  **Traverse**:
+    *   Check Block A: It's **Used** (Rejected).
+    *   Check Block B: It's **Free** and Size (872) >= 200. (Accepted).
+2.  **Split**:
+    *   **Block B** shrinks to 200 bytes. Status: **Used**.
+    *   **Block C** created at `0x1160`. Size: 648. Status: **Free**.
+
+#### 3. Freeing Memory: `my_free(ptr)`
+1.  **Calculate Header**: `Block* block = (Block*)ptr - 1`.
+2.  **Mark Free**: `block->free = 1`.
+3.  **Coalesce (Merge)**:
+    *   If `block` and `block->next` are both free, merge them into one big block.
+    *   This prevents fragmentation.
+
+---
+
+### Windows vs Linux (The Brutal Truth)
+
+| Feature | Linux | Windows |
+| :--- | :--- | :--- |
+| **Heap Growth** | `brk` / `sbrk` (Single linear heap) | **No linear heap**. Use `VirtualAlloc` regions. |
+| **Commitment** | Lazy (Overcommit allowed) | Explicit `MEM_COMMIT` required. |
+| **System Calls** | `mmap`, `munmap` | `VirtualAlloc`, `VirtualFree` |
+| **Tooling** | `strace`, `/proc`, open kernel | `WinDbg`, closed kernel |
+
+> [!TIP]
+> **Windows forces you to be precise.** If you can write a correct allocator here, Linux allocators will feel easy.
+
+### How to Build & Run
+**Windows (MSYS2 – MinGW64)**
+
+1.  **Navigate to project folder**
+    ```bash
+    cd "CoustomCalMal"
+    ```
+
+2.  **Compile**
+    ```bash
+    gcc main.c -o custom_allocator
+    ```
+    *Note: No SDL flag needed. This is pure system C.*
+
+3.  **Run**
+    ```bash
+    ./custom_allocator
     ```
 
 ---
