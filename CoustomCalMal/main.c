@@ -17,13 +17,13 @@ typedef struct Block { // will act as a book or journal
 static void* arena = NULL;
 static Block* free_list = NULL;
 
-/* ================= INITIALIZATION ================= */
+
 
 void init_allocator(void) {
     arena = VirtualAlloc(
-        NULL,
+        NULL,  
         ARENA_SIZE,
-        MEM_RESERVE | MEM_COMMIT,
+        MEM_RESERVE | MEM_COMMIT, //window make it necessary to add MEM_COMMIT and MEM_RESERVE together 
         PAGE_READWRITE
     );
 
@@ -33,12 +33,12 @@ void init_allocator(void) {
     }
 
     free_list = (Block*)arena;
-    free_list->size = ARENA_SIZE - sizeof(Block);
+    free_list->size = ARENA_SIZE - sizeof(Block); //Like linklist header size and remaining size
     free_list->free = 1;
     free_list->next = NULL;
 }
 
-/* ================= BLOCK SPLITTING ================= */
+
 
 void split_block(Block* block, size_t size) {
     Block* new_block = (Block*)((char*)(block + 1) + size);
@@ -51,7 +51,7 @@ void split_block(Block* block, size_t size) {
     block->next = new_block;
 }
 
-/* ================= MALLOC ================= */
+
 
 void* my_malloc(size_t size) {
     if (!arena)
@@ -76,12 +76,12 @@ void* my_malloc(size_t size) {
     return NULL; // out of memory
 }
 
-/* ================= COALESCING ================= */
+
 
 void coalesce(void) {
     Block* curr = free_list;
 
-    while (curr && curr->next) {
+    while (curr && curr->next) { // free blacoks mnerge make it bigger
         if (curr->free && curr->next->free) {
             curr->size += sizeof(Block) + curr->next->size;
             curr->next = curr->next->next;
@@ -91,7 +91,7 @@ void coalesce(void) {
     }
 }
 
-/* ================= FREE ================= */
+
 
 void my_free(void* ptr) {
     if (!ptr)
@@ -103,7 +103,7 @@ void my_free(void* ptr) {
     coalesce();
 }
 
-/* ================= TEST ================= */
+
 
 int main(void) {
     char* a = (char*)my_malloc(100);
