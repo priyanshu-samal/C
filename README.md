@@ -10,6 +10,7 @@ Welcome to my C programming repository. This "book" documents my journey of lear
 *   [**Chapter 4: Bouncing Ball**](./BouncingBall) - Gravity simulation with visual trail effects.
 *   [**Chapter 5: Ray Casting**](./RayTracing) - 2D dynamic shadow casting with interactive light source.
 *   [**Chapter 6: Custom Allocator**](./CoustomCalMal) - A manual memory allocator from scratch using `VirtualAlloc`.
+*   [**Chapter 7: Dynamic Array**](./Dynamicarray) - An implementation of a resizeable array (Vector) in C.
 
 ---
 
@@ -610,6 +611,70 @@ Block 2 | header=00BC0148 | user=00BC0154 | size=1048236 | free=1 | next=0000000
 3.  **Run**
     ```bash
     ./custom_allocator
+    ```
+
+---
+
+## Chapter 7: Dynamic Array
+
+### Overview
+This project implements a **Dynamic Array** (similar to `std::vector` in C++ or `ArrayList` in Java) in C. C arrays have a fixed size at compilation. A dynamic array solves this by allocating memory on the heap and automatically resizing itself when it gets full.
+
+### Key Concepts
+
+#### 1. Geometric Resizing
+When the array is full (`size == capacity`), we don't just add 1 slot. We **double** the capacity.
+*   **Why?** This ensures that inserting $N$ elements takes $O(N)$ time on average (amortized constant time), rather than $O(N^2)$ if we resized by 1 every time.
+
+```mermaid
+flowchart LR
+    Full[Array Full] -->|allocate new * 2| New[New Memory Block]
+    Full -->|copy data| New
+    Full -->|free old| Free[Free Old Block]
+    New --> Ready[Ready for Push]
+```
+
+#### 2. Operations & Complexity
+*   **Access (`da_get`)**: $O(1)$ - Instant access via index.
+*   **Push (`da_push`)**: $O(1)$ Amortized - Usually fast, occasionally slow (resize).
+*   **Insert/Remove (`da_insert`, `da_remove`)**: $O(N)$ - Requires shifting all subsequent elements to maintain order.
+
+### Code Highlights (`Dynamicarray/main.c`)
+
+**The Resize Logic (`da_reserve`)**
+```c
+int *new_data = (int *)realloc(da->data, new_capacity * sizeof(int));
+if (!new_data) return 0; // Allocation failed
+da->data = new_data;
+da->capacity = new_capacity;
+```
+We use `realloc`, which attempts to extend the memory block in place. If it can't, it allocates a new block, moves the data, and frees the old one automatically.
+
+**Shifting Data (`da_remove`)**
+To remove an element at `index`, we overwrite it by shifting everything down:
+```c
+for (size_t i = index; i + 1 < da->size; i++) {
+    da->data[i] = da->data[i + 1];
+}
+da->size--;
+```
+
+### How to Build & Run
+**Windows (MSYS2 – MinGW64)**
+
+1.  **Navigate to project folder**
+    ```bash
+    cd "Dynamicarray"
+    ```
+
+2.  **Compile**
+    ```bash
+    gcc main.c -o dynarray
+    ```
+
+3.  **Run**
+    ```bash
+    ./dynarray
     ```
 
 ---
