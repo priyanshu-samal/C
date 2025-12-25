@@ -659,6 +659,72 @@ for (size_t i = index; i + 1 < da->size; i++) {
 da->size--;
 ```
 
+### Deep Dive: The First Push (Step-by-Step)
+
+Let’s visualize a `da_push` operation frame-by-frame, tracking how data moves from the stack to the heap.
+
+#### 0️⃣ Initial State (Stack)
+```c
+DynArray arr;
+```
+Declared on the stack. Contains **garbage values** (uninitialized).
+*   **data**: `????` (Points nowhere useful)
+*   **size**: `?`
+*   **capacity**: `?`
+
+#### 1️⃣ Initialization
+```c
+da_init(&arr);
+```
+Sets struct members to zero.
+*   **data**: `NULL` (No heap allocation yet).
+*   **size**: 0
+*   **capacity**: 0
+
+#### 2️⃣ First Push: `da_push(&arr, 10)`
+**Step 1: Capacity Check**
+`if (da->size == da->capacity)` (0 == 0) → **TRUE**.
+We have zero space. We **MUST** allocate.
+
+**Step 2: Determine New Capacity**
+`(capacity == 0) ? 4 : capacity * 2`
+New capacity = **4**.
+
+**Step 3: Reserve Memory**
+`da_reserve(da, 4)` calls `realloc(NULL, 16)`.
+*   OS finds 16 bytes (4 ints) on the heap (e.g., at `0x1000`).
+*   Returns pointer `0x1000`.
+
+**Memory Snapshot:**
+```text
+Stack (arr)       Heap (0x1000)
+data: 0x1000 ───→ [ ???? ???? ???? ???? ]
+size: 0
+cap:  4
+```
+
+**Step 4: Store Value**
+`da->data[size] = 10`
+*   Writes `10` to `0x1000`.
+*   Increments `size` to 1.
+
+**Final Snapshot (After Push):**
+```text
+Stack (arr)       Heap (0x1000)
+data: 0x1000 ───→ [  10  ???? ???? ???? ]
+size: 1
+cap:  4
+```
+
+#### 3️⃣ Second Push: `da_push(&arr, 20)`
+1.  **Check**: `size (1) == capacity (4)` → **FALSE**.
+2.  **Write**: `da->data[1] = 20`.
+3.  **Increment**: `size` becomes 2.
+
+> [!NOTE]
+> **Why this complexity?**
+> If we blindly wrote to `a[4]`, we would trigger **Undefined Behavior**. This struct acts as a safe "fat pointer" that manages ownership and bounds for us.
+
 ### How to Build & Run
 **Windows (MSYS2 – MinGW64)**
 
