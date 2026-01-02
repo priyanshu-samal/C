@@ -383,7 +383,7 @@ for (int i = 0; i < ray_count; i++) {
 
 ## Chapter 6: Custom Allocator
 
-[**View Gameplay Demo on X**](https://x.com/PriyanshuS92042/status/2004203795035926637)
+[**View Demo on X**](https://x.com/PriyanshuS92042/status/2004203795035926637)
 
 ![Custom Allocator Screenshot](./CoustomCalMal/malloc.png)
 
@@ -622,7 +622,7 @@ Block 2 | header=00BC0148 | user=00BC0154 | size=1048236 | free=1 | next=0000000
 
 ## Chapter 7: Dynamic Array
 
-[**View Gameplay Demo on X**](https://x.com/PriyanshuS92042/status/2004933167460090295)
+[**View Demo on X**](https://x.com/PriyanshuS92042/status/2004933167460090295)
 
 ![Dynamic Array Screenshot](./Dynamicarray/dynamicarray.png)
 
