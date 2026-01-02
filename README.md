@@ -11,6 +11,7 @@ Welcome to my C programming repository. This "book" documents my journey of lear
 *   [**Chapter 5: Ray Casting**](./RayTracing) - 2D dynamic shadow casting with interactive light source.
 *   [**Chapter 6: Custom Allocator**](./CoustomCalMal) - A manual memory allocator from scratch using `VirtualAlloc`.
 *   [**Chapter 7: Dynamic Array**](./Dynamicarray) - An implementation of a resizeable array (Vector) in C.
+*   [**Chapter 8: Random Walk**](./randomwalk) - A visualization of 2000 agents moving randomly with trail effects.
 
 ---
 
@@ -122,7 +123,7 @@ stateDiagram-v2
 
 ## Chapter 3: Ping Pong
 
-[**View Gameplay Demo on X 🚀**](https://x.com/PriyanshuS92042/status/2001981221052858504?s=20)
+[**View Gameplay Demo on X**](https://x.com/PriyanshuS92042/status/2001981221052858504?s=20)
 
 ### Overview
 **Pong in C using SDL2** is a classic Pong game implemented from scratch. This project was built to deeply understand low-level memory manipulation, pointers, real-time game loops, collision physics, and state-driven architecture.
@@ -130,13 +131,13 @@ stateDiagram-v2
 ![Gameplay Screenshot](./Ping%20Pong/pingpong.png)
 
 ### Features
-*   **🎮 Two-player Pong** (keyboard controlled)
-*   **⏯️ Start / Pause / Resume** game
-*   **⏯️ Restart** game with score reset
-*   **🧠 Constant-speed ball physics** (no speed bugs)
-*   **🧱 Proper collision handling** (walls & paddles)
-*   **📝 Text rendering** using SDL2_ttf
-*   **🧩 Clean game-state architecture**
+*   **Two-player Pong** (keyboard controlled)
+*   **Start / Pause / Resume** game
+*   **Restart** game with score reset
+*   **Constant-speed ball physics** (no speed bugs)
+*   **Proper collision handling** (walls & paddles)
+*   **Text rendering** using SDL2_ttf
+*   **Clean game-state architecture**
 
 ### Controls
 | Key | Action |
@@ -239,7 +240,7 @@ Ping Pong/
 
 ## Chapter 4: Bouncing Ball
 
-[**View Gameplay Demo on X 🚀**](https://x.com/PriyanshuS92042/status/2002752477947724057?s=20)
+[**View Gameplay Demo on X**](https://x.com/PriyanshuS92042/status/2002752477947724057?s=20)
 
 ### Overview
 **Bouncing Ball** is a physics simulation that models gravity and momentum. It renders a red ball that accelerates downwards, bounces off the floor with energy loss (restitution), and leaves a fading orange trail to visualize its path.
@@ -307,7 +308,7 @@ for (int dy = -radius; dy <= radius; dy++) {
 
 ## Chapter 5: Ray Casting
 
-[**View Gameplay Demo on X 🚀**]()
+[**View Gameplay Demo on X**]()
 
 ### Overview
 **Sharp Rays** is a 2D ray casting engine that demonstrates dynamic lighting and shadows. Unlike standard rasterization, this project casts hundreds of rays from a light source (the "Sun") in all directions. When a ray hits an object (the "Earth"), it stops, creating a shadow behind the object. The simulation renders these rays in real-time, allowing you to drag the Sun and Earth to see the shadows shift instantly.
@@ -438,14 +439,14 @@ We’ll walk through this allocator as if we are single-stepping it in a debugge
 *   Alignment = 8
 *   Arena base address = `0x1000`
 
-#### 0️⃣ Initial State
+#### Step 0: Initial State
 ```c
 static void* arena = NULL;
 static Block* free_list = NULL;
 ```
 Nothing exists yet.
 
-#### 1️⃣ First call: `my_malloc(100)`
+#### Step 1: First call: `my_malloc(100)`
 
 **Step 1: Lazy Init**
 `arena` is NULL, so `init_allocator()` runs. `VirtualAlloc` gives memory at `0x1000`.
@@ -489,7 +490,7 @@ Requested size is **104**.
 ```
 **Return**: `0x1018` (User gets pointer to data).
 
-#### 2️⃣ Second call: `my_malloc(200)`
+#### Step 2: Second call: `my_malloc(200)`
 1.  **Align**: `ALIGN(200)` = 200.
 2.  **Traverse**:
     *   Block A (`0x1000`): `free=0` → **REJECTED**.
@@ -498,27 +499,27 @@ Requested size is **104**.
     *   New Block C created at `0x1160` (`0x1098` + 200).
     *   Block B becomes Used (200), Block C is Free (648).
 
-#### 3️⃣ Third call: `my_malloc(50)`
+#### Step 3: Third call: `my_malloc(50)`
 1.  **Align**: `ALIGN(50)` = 56.
 2.  **Traverse**: A (Used) → B (Used) → C (Free, 648 >= 56). **ACCEPTED**.
 3.  **Split**: New Block D created.
 
 **Current Layout**: `[A used] [B used] [C used] [D free]`
 
-#### 4️⃣ Freeing: `my_free(b)`
+#### Step 4: Freeing: `my_free(b)`
 1.  Get header from pointer (`0x1098` - 24 = `0x1080`).
 2.  Mark `free = 1`.
 3.  **Coalesce**:
     *   A (Used) + B (Free) → Skip.
     *   B (Free) + C (Used) → Skip.
 
-#### 5️⃣ Freeing: `my_free(a)`
+#### Step 5: Freeing: `my_free(a)`
 1.  Mark A `free = 1`.
 2.  **Coalesce**:
     *   A (Free) + B (Free) → **MERGE**. A absorbs B.
     *   Size becomes `sizeof(A) + sizeof(Block) + sizeof(B)`.
 
-#### 6️⃣ Freeing: `my_free(c)`
+#### Step 6: Freeing: `my_free(c)`
 1.  Mark C `free = 1`.
 2.  **Coalesce**: (A+B) is Free, C is Free. **MERGE**.
 3.  Result: One giant free block (A+B+C+D).
@@ -527,12 +528,12 @@ Requested size is **104**.
 
 ### Logic Summary
 
-**🚫 When allocation is REJECTED**
+**When allocation is REJECTED**
 1.  **Block too small**: `curr->size < size`
 2.  **Block is used**: `curr->free == 0`
 3.  **No block fits**: Returns `NULL`
 
-**✅ When allocation is ACCEPTED**
+**When allocation is ACCEPTED**
 1.  **Block is free** AND **Size is sufficient**.
 2.  **Split Condition**: `curr->size >= size + sizeof(Block) + ALIGNMENT`.
     *   If yes: Split (Shrink current, create new free block).
@@ -663,7 +664,7 @@ da->size--;
 
 Let’s visualize a `da_push` operation frame-by-frame, tracking how data moves from the stack to the heap.
 
-#### 0️⃣ Initial State (Stack)
+#### Step 0: Initial State (Stack)
 ```c
 DynArray arr;
 ```
@@ -672,7 +673,7 @@ Declared on the stack. Contains **garbage values** (uninitialized).
 *   **size**: `?`
 *   **capacity**: `?`
 
-#### 1️⃣ Initialization
+#### Step 1: Initialization
 ```c
 da_init(&arr);
 ```
@@ -681,7 +682,7 @@ Sets struct members to zero.
 *   **size**: 0
 *   **capacity**: 0
 
-#### 2️⃣ First Push: `da_push(&arr, 10)`
+#### Step 2: First Push: `da_push(&arr, 10)`
 **Step 1: Capacity Check**
 `if (da->size == da->capacity)` (0 == 0) → **TRUE**.
 We have zero space. We **MUST** allocate.
@@ -716,7 +717,7 @@ size: 1
 cap:  4
 ```
 
-#### 3️⃣ Second Push: `da_push(&arr, 20)`
+#### Step 3: Second Push: `da_push(&arr, 20)`
 1.  **Check**: `size (1) == capacity (4)` → **FALSE**.
 2.  **Write**: `da->data[1] = 20`.
 3.  **Increment**: `size` becomes 2.
@@ -741,6 +742,89 @@ cap:  4
 3.  **Run**
     ```bash
     ./dynarray
+    ```
+
+---
+
+## Chapter 8: Random Walk
+
+[**View Gameplay Demo on X**]()
+
+### Overview
+This project visualizes **Brownian Motion** (random walk) using 2000 independent agents. Each agent picks a random direction every frame. We also implement a "fade" effect where old trails slowly disappear, creating a dynamic, organic visual pattern.
+
+![Random Walk Screenshot](./randomwalk/randomwalk.png)
+
+### Code Walkthrough (Line-by-Line)
+
+**1. The Agent Struct**
+```c
+typedef struct {
+    int x;
+    int y;
+    Uint8 r, g, b;
+} Agent;
+```
+Each "walker" has a position (`x`, `y`) and a unique color (`r`, `g`, `b`). We don't need a velocity vector because they move instantly in cardinal directions.
+
+**2. Initialization (The Color Gradient)**
+```c
+for (int i = 0; i < agent_count; i++) {
+    agents[i].x = WIDTH / 2;
+    agents[i].y = HEIGHT / 2;
+
+    float t = (float)i / agent_count;
+    agents[i].r = (Uint8)(255 * t);
+    agents[i].g = (Uint8)(255 * (1.0f - t));
+    agents[i].b = (Uint8)(128 + 127 * sin(t * 6.28f));
+}
+```
+*   **Position**: All agents start at the center.
+*   **Color**: We use a parametric equation to assign a gradient.
+    *   `t` goes from 0.0 to 1.0.
+    *   Red increases, Green decreases, Blue oscillates (sine wave). This ensures every agent looks distinct.
+
+**3. The Fade Effect (Visual Trick)**
+Instead of clearing the screen with `SDL_RenderClear` (which wipes everything to black), we do this:
+```c
+SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+SDL_SetRenderDrawColor(renderer, 0, 0, 0, 25);
+SDL_Rect fade = { 0, 0, WIDTH, HEIGHT };
+SDL_RenderFillRect(renderer, &fade);
+```
+*   **Blend Mode**: Enables transparency.
+*   **Alpha 25**: We draw a black rectangle that is only ~10% opaque.
+*   **Result**: New pixels are bright. Old pixels get slightly darker every frame until they vanish. This creates the "tail" effect without storing history.
+
+**4. The Movement Logic**
+```c
+int dir = rand() % 4;
+
+if (dir == 0) agents[i].x += 2;
+if (dir == 1) agents[i].x -= 2;
+if (dir == 2) agents[i].y += 2;
+if (dir == 3) agents[i].y -= 2;
+```
+*   We toss a 4-sided die (`rand() % 4`).
+*   The agent moves 2 pixels in that direction.
+*   We then clamp the coordinates to the window bounds (0 to WIDTH/HEIGHT) to keep them on screen.
+
+### How to Build & Run
+**Windows (MSYS2 – MinGW64)**
+
+1.  **Navigate to project folder**
+    ```bash
+    cd "randomwalk"
+    ```
+
+2.  **Compile**
+    ```bash
+    gcc main.c -o randomwalk $(pkg-config --cflags --libs sdl2) -lm
+    ```
+
+3.  **Run**
+    ```bash
+    ./randomwalk
     ```
 
 ---
