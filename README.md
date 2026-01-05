@@ -12,6 +12,7 @@ Welcome to my C programming repository. This "book" documents my journey of lear
 *   [**Chapter 6: Custom Allocator**](./CoustomCalMal) - A manual memory allocator from scratch using `VirtualAlloc`.
 *   [**Chapter 7: Dynamic Array**](./Dynamicarray) - An implementation of a resizeable array (Vector) in C.
 *   [**Chapter 8: Random Walk**](./randomwalk) - A visualization of 2000 agents moving randomly with trail effects.
+*   [**Chapter 9: Hash Table**](./HashTable) - A fixed-size hash map using open addressing and linear probing.
 
 ---
 
@@ -756,7 +757,7 @@ cap:  4
 
 ## Chapter 8: Random Walk
 
-[**View Gameplay Demo on X**]()
+[**View Gameplay Demo on X**](https://x.com/PriyanshuS92042/status/2007510048201961605)
 
 ### Overview
 This project visualizes **Brownian Motion** (random walk) using 2000 independent agents. Each agent picks a random direction every frame. We also implement a "fade" effect where old trails slowly disappear, creating a dynamic, organic visual pattern.
@@ -833,6 +834,99 @@ if (dir == 3) agents[i].y -= 2;
 3.  **Run**
     ```bash
     ./randomwalk
+    ```
+
+---
+## Chapter 9: Hash Table
+
+[**View Demo on X**]()
+
+![Hashtable Screenshot](./HashTable/hashtable.png)
+
+### Overview
+This project implements a **Hash Table** (or Hash Map) in C from scratch. Unlike higher-level languages that provide built-in dictionaries, C requires us to manage the hashing, storage, and collision resolution manually. This implementation uses **Open Addressing** with **Linear Probing** to handle collisions, meaning all data is stored directly in the array without using external linked lists.
+
+### Key Concepts
+
+#### 1. The Hash Function (djb2)
+We use the famous **djb2** algorithm by Dan Bernstein. It is known for its simplicity and good distribution properties.
+*   **Magic Number**: `5381` (Chosen largely for empirical reasons).
+*   **Operation**: `hash * 33 + char` (implemented as `(hash << 5) + hash + c`).
+
+#### 2. Collision Resolution: Linear Probing
+In a perfect world, every key hashes to a unique index. In reality, collisions happen.
+When `hash("John")` and `hash("Jane")` point to the same index:
+1.  Check if the slot is empty.
+2.  If occupied, move to the next slot (`index + 1`).
+3.  Wrap around if we reach the end of the array.
+
+```mermaid
+flowchart LR
+    Key["Key: 'John'"] --> Hash[Hash Function]
+    Hash --> Index5[Index 5]
+    Index5 --> Check{Occupied?}
+    Check -->|No| Insert[Insert at 5]
+    Check -->|Yes| Probe[Probe Next (Index 6)]
+    Probe --> Check2{Occupied?}
+    Check2 -->|No| Insert2[Insert at 6]
+    
+    style Index5 fill:#ffcdd2,stroke:#c62828
+    style Insert2 fill:#c8e6c9,stroke:#2e7d32
+```
+
+### Code Highlights (`HashTable/main.c`)
+
+**The Structs**
+We track `occupied` slots explicitly to differentiate between "empty" and "index 0".
+```c
+typedef struct {
+    Person data[TABLE_SIZE];
+    bool occupied[TABLE_SIZE];
+} HashTable;
+```
+
+**Insertion Logic**
+```c
+bool ht_insert(HashTable *ht, const char *name, int age) {
+    unsigned int index = hash(name);
+
+    for (int i = 0; i < TABLE_SIZE; i++) {
+        unsigned int probe = (index + i) % TABLE_SIZE; // Linear Probe
+
+        // 1. Found empty slot? Insert.
+        if (!ht->occupied[probe]) {
+            strcpy(ht->data[probe].name, name);
+            ht->data[probe].age = age;
+            ht->occupied[probe] = true;
+            return true;
+        }
+
+        // 2. Key already exists? Update.
+        if (strcmp(ht->data[probe].name, name) == 0) {
+            ht->data[probe].age = age;
+            return true;
+        }
+    }
+    return false; // Table full
+}
+```
+
+### How to Build & Run
+**Windows (MSYS2 – MinGW64)**
+
+1.  **Navigate to project folder**
+    ```bash
+    cd "HashTable"
+    ```
+
+2.  **Compile**
+    ```bash
+    gcc main.c -o hashtable
+    ```
+
+3.  **Run**
+    ```bash
+    ./hashtable
     ```
 
 ---
