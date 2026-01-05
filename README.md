@@ -862,13 +862,13 @@ When `hash("John")` and `hash("Jane")` point to the same index:
 
 ```mermaid
 flowchart LR
-    Key["Key: 'John'"] --> Hash[Hash Function]
-    Hash --> Index5[Index 5]
-    Index5 --> Check{Occupied?}
-    Check -->|No| Insert[Insert at 5]
-    Check -->|Yes| Probe[Probe Next (Index 6)]
-    Probe --> Check2{Occupied?}
-    Check2 -->|No| Insert2[Insert at 6]
+    Key["Key: 'John'"] --> Hash["Hash Function"]
+    Hash --> Index5["Index 5"]
+    Index5 --> Check{"Occupied?"}
+    Check -->|No| Insert["Insert at 5"]
+    Check -->|Yes| Probe["Probe Next (Index 6)"]
+    Probe --> Check2{"Occupied?"}
+    Check2 -->|No| Insert2["Insert at 6"]
     
     style Index5 fill:#ffcdd2,stroke:#c62828
     style Insert2 fill:#c8e6c9,stroke:#2e7d32
